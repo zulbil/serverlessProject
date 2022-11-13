@@ -12,7 +12,7 @@ const logger = createLogger('auth')
 // TODO: Provide a URL that can be used to download a certificate that can be used
 // to verify JWT token signature.
 // To get this URL you need to go to an Auth0 page -> Show Advanced Settings -> Endpoints -> JSON Web Key Set
-const jwksUrl = '...'
+const jwksUrl = 'https://zulbil.eu.auth0.com/.well-known/jwks.json'
 
 export const handler = async (
   event: CustomAuthorizerEvent
@@ -54,16 +54,104 @@ export const handler = async (
   }
 }
 
+/**
+ * 
+ * @param authHeader 
+ * @returns 
+ */
 async function verifyToken(authHeader: string): Promise<JwtPayload> {
-  const token = getToken(authHeader)
-  const jwt: Jwt = decode(token, { complete: true }) as Jwt
+  try {
+    const token = getToken(authHeader)
+    const jwt: Jwt = decode(token, { complete: true }) as Jwt;
 
-  // TODO: Implement token verification
-  // You should implement it similarly to how it was implemented for the exercise for the lesson 5
-  // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
-  return undefined
+    const jwks = await getJwks(jwksUrl);
+    const keys = await getSigningKeys(jwks);
+    const secret = getSigningKey(keys, jwt.header.kid);
+
+    return verify(token, secret, {algorithms: ['RS256']}) as JwtPayload; 
+  } catch (error) {
+    console.log(error.message);
+    return null; 
+  }
 }
 
+/**
+ * 
+ * @param jwkEndpoint 
+ * @returns 
+ */
+async function getJwks(jwkEndpoint): Promise<any> {
+  try {
+    const response = await Axios.get(jwkEndpoint);
+    const { status, data } = response;
+    console.log("Response :",response);
+
+    if (status != 200) {
+      throw new Error("Http Error request ...");
+    }
+    return data.keys; 
+  } catch (error) {
+    console.log(error.message);
+    return null; 
+  }
+}
+
+function getSigningKeys(keys:any) : any {
+  try {
+    if (!keys || !keys.length) {
+      throw new Error("The JWKS endpoint did not contain any keys");
+    }
+    const signingKeys = keys
+        .filter(key => key.use === 'sig' 
+                    && key.kty === 'RSA' 
+                    && key.kid          
+                    && ((key.x5c && key.x5c.length) || (key.n && key.e))
+        ).map(key => {
+          return { kid: key.kid, nbf: key.nbf, publicKey: certToPEM(key.x5c[0]) };
+        });
+    if (!signingKeys.length) {
+      throw new Error("The JWKS endpoint did not contain any signature verification keys");
+    }
+
+    return signingKeys;
+    
+  } catch (error) {
+    console.log(error.message);
+    return null; 
+  }
+}
+
+/**
+ * 
+ * @param keys 
+ * @param kid 
+ * @returns 
+ */
+function getSigningKey(keys: any, kid: string) : string {
+  try {
+    const signingKey = keys.find(key => key.kid === kid); 
+
+    if (!signingKey) {
+      throw new Error(`Unable to find a signing key that matches ${kid}`);
+    }
+    return signingKey; 
+  } catch (error) {
+    console.log(error.message);
+    return null;
+  }
+}
+
+function certToPEM(cert) : string {
+  cert = cert.match(/.{1,64}/g).join('\n');
+  cert = `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----\n`;
+  return cert;
+}
+
+/**
+ * 
+ * @param authHeader 
+ * @returns 
+ */
 function getToken(authHeader: string): string {
   if (!authHeader) throw new Error('No authentication header')
 
