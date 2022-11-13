@@ -1,5 +1,5 @@
 import * as AWS from 'aws-sdk'
-import * as AWSXRay from 'aws-xray-sdk'
+import * as AWSXRay from 'aws-xray-sdk-core'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 import { createLogger } from '../utils/logger'
 import { TodoItem } from '../models/TodoItem'
@@ -8,6 +8,18 @@ import { TodoUpdate } from '../models/TodoUpdate';
 const XAWS = AWSXRay.captureAWS(AWS)
 
 const logger = createLogger('TodosAccess')
+
+function createDynamoDBClient() {
+  if (process.env.IS_OFFLINE) {
+    console.log('Creating a local DynamoDB instance')
+    return new XAWS.DynamoDB.DocumentClient({
+      region: 'localhost',
+      endpoint: 'http://localhost:8000'
+    })
+  }
+
+  return new XAWS.DynamoDB.DocumentClient()
+}
 
 // TODO: Implement the dataLayer logic
 
@@ -35,46 +47,36 @@ export class TodoAccess {
       Item: todoItem
     }).promise()
 
-    return todoItem
+    return todoItem as TodoItem;
   }
 
-  async updateTodo(id: string, group: Partial<TodoItem>): Promise<TodoItem> {
+  async updateTodo(id: string, todoItem: Partial<TodoUpdate>): Promise<TodoUpdate> {
     const updated = await this.docClient
         .update({
             TableName: this.todosTable,
             Key: { id },
             UpdateExpression:
-                "set #name = :name, #description = :description",
+                "set #name = :name, #dueDate = :dueDate, #done = :done",
             ExpressionAttributeNames: {
                 "#name": "name",
-                "#description": "description"
+                "#dueDate": "dueDate",
+                "#done": "done"
             },
             ExpressionAttributeValues: {
-                ":name": group.name,
-                ":description": group.description
+                ":name": todoItem.name,
+                ":dueDate": todoItem.dueDate,
+                ":done": todoItem.done
             },
             ReturnValues: "ALL_NEW",
         })
         .promise();
-    return updated.Attributes as Group;
-}
+    return updated.Attributes as TodoUpdate;
+  }
 
   async deleteTodo(id: string): Promise<any> {
-    return await this.docClient.delete({
-        TableName: this.todosTable,
-        Key: { id }
-    }).promise();
-}
-}
-
-function createDynamoDBClient() {
-    if (process.env.IS_OFFLINE) {
-      console.log('Creating a local DynamoDB instance')
-      return new XAWS.DynamoDB.DocumentClient({
-        region: 'localhost',
-        endpoint: 'http://localhost:8000'
-      })
-    }
-  
-    return new XAWS.DynamoDB.DocumentClient()
+      return await this.docClient.delete({
+          TableName: this.todosTable,
+          Key: { id }
+      }).promise();
   }
+}
