@@ -1,6 +1,16 @@
 import * as AWS from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk'
 
-const XAWS = AWSXRay.captureAWS(AWS)
+const bucketName: string = process.env.ATTACHMENT_S3_BUCKET
 
-// TODO: Implement the fileStogare logic
+const XAWS = AWSXRay.captureAWS(AWS)
+const s3: any = new XAWS.S3({ signatureVersion: 'v4' });
+
+
+export function createAttachmentPresignedUrl(imageId: string): string {
+    return s3.getSignedUrl('putObject', {
+      Bucket: bucketName,
+      Key: imageId,
+      Expires: this.urlExpiration
+    })
+}

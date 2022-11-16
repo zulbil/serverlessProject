@@ -1,13 +1,13 @@
 import * as AWS from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk-core'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
-import { createLogger } from '../utils/logger'
+//import { createLogger } from '../utils/logger'
 import { TodoItem } from '../models/TodoItem'
 import { TodoUpdate } from '../models/TodoUpdate';
 
 const XAWS = AWSXRay.captureAWS(AWS)
 
-const logger = createLogger('TodosAccess')
+//const logger = createLogger('TodosAccess')
 
 function createDynamoDBClient() {
   if (process.env.IS_OFFLINE) {
@@ -47,7 +47,7 @@ export class TodoAccess {
       Item: todoItem
     }).promise()
 
-    return todoItem as TodoItem;
+    return todoItem;
   }
 
   async updateTodo(id: string, todoItem: Partial<TodoUpdate>): Promise<TodoUpdate> {
