@@ -1,13 +1,13 @@
 import * as AWS from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk-core'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
-//import { createLogger } from '../utils/logger'
+import { createLogger } from '../utils/logger'
 import { TodoItem } from '../models/TodoItem'
 import { TodoUpdate } from '../models/TodoUpdate';
 
 const XAWS = AWSXRay.captureAWS(AWS)
 
-//const logger = createLogger('TodosAccess')
+const logger = createLogger('TodosAccess')
 
 function createDynamoDBClient() {
   if (process.env.IS_OFFLINE) {
@@ -21,23 +21,25 @@ function createDynamoDBClient() {
   return new XAWS.DynamoDB.DocumentClient()
 }
 
-// TODO: Implement the dataLayer logic
 
 export class TodoAccess {
 
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
-    private readonly todosTable = process.env.GROUPS_TABLE) {
+    private readonly todosTable = process.env.TODOS_TABLE
+  ) {
   }
 
   async getTodos(): Promise<TodoItem[]> {
-    console.log('Getting all todos')
 
     const result = await this.docClient.scan({
       TableName: this.todosTable
     }).promise()
 
     const items = result.Items
+
+    logger.info('Get Todos API call' , { items }); 
+
     return items as TodoItem[]
   }
 

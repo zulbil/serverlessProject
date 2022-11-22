@@ -17,10 +17,10 @@ const jwksUrl = 'https://zulbil.eu.auth0.com/.well-known/jwks.json'
 export const handler = async (
   event: CustomAuthorizerEvent
 ): Promise<CustomAuthorizerResult> => {
-  logger.info('Authorizing a user', event.authorizationToken)
+  logger.info('Authorizing a user', { authorization : event.authorizationToken });
   try {
     const jwtToken = await verifyToken(event.authorizationToken)
-    logger.info('User was authorized', jwtToken)
+    logger.info('User was authorized', { token : jwtToken });
 
     return {
       principalId: jwtToken.sub,
@@ -64,13 +64,15 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
     const token = getToken(authHeader)
     const jwt: Jwt = decode(token, { complete: true }) as Jwt;
 
+    logger.info('Response getJWks function', { jwt })
+
     const jwks = await getJwks(jwksUrl);
     const keys = await getSigningKeys(jwks);
     const secret = getSigningKey(keys, jwt.header.kid);
 
     return verify(token, secret, {algorithms: ['RS256']}) as JwtPayload; 
   } catch (error) {
-    console.log(error.message);
+    logger.error('User not authorized', { error: error.message })
     return null; 
   }
 }
@@ -84,7 +86,7 @@ async function getJwks(jwkEndpoint): Promise<any> {
   try {
     const response = await Axios.get(jwkEndpoint);
     const { status, data } = response;
-    console.log("Response :",response);
+    logger.info('Response getJWks function', { response })
 
     if (status != 200) {
       throw new Error("Http Error request ...");
@@ -113,6 +115,8 @@ function getSigningKeys(keys:any) : any {
       throw new Error("The JWKS endpoint did not contain any signature verification keys");
     }
 
+    logger.info('Response getSigningKeys function', { signingKeys })
+
     return signingKeys;
     
   } catch (error) {
@@ -131,10 +135,12 @@ function getSigningKey(keys: any, kid: string) : string {
   try {
     const signingKey = keys.find(key => key.kid === kid); 
 
+    logger.info('Response getSigningKey function', { signingKey })
+
     if (!signingKey) {
       throw new Error(`Unable to find a signing key that matches ${kid}`);
     }
-    return signingKey; 
+    return signingKey.publicKey; 
   } catch (error) {
     console.log(error.message);
     return null;
