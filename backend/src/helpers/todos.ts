@@ -13,8 +13,10 @@ import { TodoUpdate } from '../models/TodoUpdate'
 
 const todoAccess = new TodoAccess();
 
-export async function getTodos(): Promise<TodoItem[]> {
-    return todoAccess.getTodos();
+export async function getTodos(userId:string): Promise<TodoItem[]> {
+    //return await todoAccess.getTodos(userId);
+    console.log(userId);
+    return [];
 }
 
 export async function createTodo(

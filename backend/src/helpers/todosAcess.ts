@@ -24,21 +24,30 @@ function createDynamoDBClient() {
 
 export class TodoAccess {
 
-  constructor(
-    private readonly docClient: DocumentClient = createDynamoDBClient(),
-    private readonly todosTable = process.env.TODOS_TABLE
-  ) {
-  }
+  private todosTable: string          = process.env.TODOS_TABLE; 
+  private docClient: DocumentClient   = createDynamoDBClient(); 
+  private indexName: string           = process.env.TODOS_CREATED_AT_INDEX; 
 
-  async getTodos(): Promise<TodoItem[]> {
+  constructor() {}
 
-    const result = await this.docClient.scan({
-      TableName: this.todosTable
-    }).promise()
+  async getTodos(userId: string): Promise<TodoItem[]> {
+
+    // const result = await this.docClient.query({
+    //   TableName: this.todosTable,
+    //   IndexName: this.indexName,
+    //   KeyConditionExpression: 'userId = :userId',
+    //   ExpressionAttributeValues: {
+    //     ':userId' : userId
+    //   }
+    // }).promise();
+
+    const result = {
+      Items: []
+    };
 
     const items = result.Items
 
-    logger.info('Get Todos API call' , { items }); 
+    logger.info('Get Todos API call' , { userId, indexName: this.indexName }); 
 
     return items as TodoItem[]
   }

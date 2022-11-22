@@ -5,18 +5,21 @@ import * as middy from 'middy'
 import { cors } from 'middy/middlewares'
 import { createLogger } from '../../utils/logger'
 import { formatJSONResponse } from '../../utils/api-gateway'
-
-import { getTodos as getTodosForUser} from './../../helpers/todos';
+import { getUserId } from '../utils'
+import { getTodos } from './../../helpers/todos';
 
 const logger = createLogger('getTodos')
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    logger.info('Get Todos API call' , { event });
+    logger.info('Get Todos API call Event ' , { event });
     try {
-      const todos = await getTodosForUser()
-      logger.info('Get Todos API call' , { todos });
-      const response = { items :todos };
+      
+      const userId = getUserId(event);
+      logger.info('Get Todos API call Event ' , { userId });
+      const todos = await getTodos(userId);
+      logger.info('Get Todos API call' , { todos });      
+      const response = { items : todos };
       return formatJSONResponse(response);
     } catch (error: any) {
       return formatJSONResponse({
