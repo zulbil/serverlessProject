@@ -9,6 +9,7 @@ export const formatJSONResponse = (response: Record<string, unknown>, status: nu
     statusCode: status,
     headers: {
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': true
     },
     body: JSON.stringify(response)
   }

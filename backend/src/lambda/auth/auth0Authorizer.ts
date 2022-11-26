@@ -63,12 +63,16 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
   try {
     const token = getToken(authHeader)
     const jwt: Jwt = decode(token, { complete: true }) as Jwt;
-
-    logger.info('Response getJWks function', { jwt })
-
+    logger.info('Jwt Token', { jwt })
+    
     const jwks = await getJwks(jwksUrl);
+    //logger.info('Jwks', { jwks })
+
     const keys = await getSigningKeys(jwks);
+    logger.info('keys', { keys })
+
     const secret = getSigningKey(keys, jwt.header.kid);
+    logger.info('secret', { secret })
 
     return verify(token, secret, {algorithms: ['RS256']}) as JwtPayload; 
   } catch (error) {
@@ -82,11 +86,12 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
  * @param jwkEndpoint 
  * @returns 
  */
-async function getJwks(jwkEndpoint): Promise<any> {
+async function getJwks(jwkEndpoint: string): Promise<any> {
   try {
     const response = await Axios.get(jwkEndpoint);
     const { status, data } = response;
-    logger.info('Response getJWks function', { response })
+
+    logger.info('Data Jwks', { response })
 
     if (status != 200) {
       throw new Error("Http Error request ...");
