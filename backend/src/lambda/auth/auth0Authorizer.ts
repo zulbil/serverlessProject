@@ -9,9 +9,6 @@ import { JwtPayload } from '../../auth/JwtPayload'
 
 const logger = createLogger('auth')
 
-// TODO: Provide a URL that can be used to download a certificate that can be used
-// to verify JWT token signature.
-// To get this URL you need to go to an Auth0 page -> Show Advanced Settings -> Endpoints -> JSON Web Key Set
 const jwksUrl = 'https://zulbil.eu.auth0.com/.well-known/jwks.json'
 
 export const handler = async (
@@ -66,7 +63,6 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
     logger.info('Jwt Token', { jwt })
     
     const jwks = await getJwks(jwksUrl);
-    //logger.info('Jwks', { jwks })
 
     const keys = await getSigningKeys(jwks);
     logger.info('keys', { keys })
